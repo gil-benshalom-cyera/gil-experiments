@@ -1,0 +1,41 @@
+[tool.poetry]
+name = "llm_client_py"
+version = "0.1.0"
+description = "A client to interact with all the LLM APIs."
+readme = "README.md"
+authors = ["research-engineering", "data-science"]
+
+[tool.poetry.scripts]
+lint = "cyera_common_py.lint:lint"
+fix = "cyera_common_py.lint:fix"
+
+[tool.poetry.dependencies]
+python = "==3.11.9"
+openai = "^1.28.1"
+pandas = "^1.5.0"
+pyarrow = "^16.1.0"
+google-auth= "^2.29.0"
+google-auth-oauthlib= "^1.2.0"
+google-auth-stubs= "^0.1.0"
+tiktoken = "^0.7.0"
+nest_asyncio = "^1.6.0"
+python-dotenv = "^1.0.1"
+numpy = "^1.26.4"
+cyera_common_py = { path = "../../cyera/libs/python/cyera_common_py", develop = true }
+types-tqdm = "^4.66.0.20240417"
+pandas-stubs = "^2.2.2.240603"
+google-cloud-aiplatform = "^1.75.0"
+
+[tool.poetry.dev-dependencies]
+mypy = "==1.8.0"
+black = "^22.6.0"
+pylint = "^3.0.0a5"
+pylint-pydantic = "^0.3.2"
+
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+addopts = "--suppress-no-test-exit-code"
