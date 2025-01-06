@@ -80,7 +80,7 @@ def get_input():
     df = get_data()
     tools, tools_choice = get_tools()
     df['prompt'] = df.apply(lambda x: build_prompt(x, tools, tools_choice), axis=1)
-    return df['prompt'].tolist()[0:100]
+    return df['prompt'].tolist()
 
 
 def build_prompt(row: Series, tools: list = None, tool_choice: dict = None):
@@ -89,9 +89,7 @@ def build_prompt(row: Series, tools: list = None, tool_choice: dict = None):
             "system_instruction": {
                 "parts": [
                     {
-                        "text": f"Please classify the following text to one of the following classes: {row['options']}.\n"
-                                f"Choose one even if you are not sure.\n"
-                                f"please provide a brief explanation for your choice."
+                        "text": "You *must* classify the following text into one of these classes:" + str(row['options']) + ". Even if uncertain, choose the most likely class and provide a brief explanation"
                     }
                 ]
             },
@@ -102,12 +100,19 @@ def build_prompt(row: Series, tools: list = None, tool_choice: dict = None):
                         "text": row['text']
                     }]
                 }
-            ]
+            ],
+            'generation_config': {
+                'temperature': 0.2
+            }
         }
     }
     if tools and tool_choice:
         prompt["request"]["tools"] = {"function_declarations": tools}
-        # prompt["tool_choice"] = tool_choice
+        prompt["request"]["tool_config"] = {
+            "function_calling_config":{
+                    "mode": "any", "allowed_function_names": [tool_choice["name"]]
+                }
+        }
     return prompt
 
 
@@ -177,9 +182,14 @@ def load_model_output(output_file_path: str):
     rows = []
     with open(output_file_path, 'r') as f:
         for line in f:
+            input_text, res = '', ''
             res = json.loads(line)
-            input_text = res['request']['contents'][0]['parts'][0]['text']
-            answer = res['response']['candidates'][0]['content']['parts'][0]['functionCall']['args']['result']
+            try:
+                input_text = res['request']['contents'][0]['parts'][0]['text']
+                answer = res['response']['candidates'][0]['content']['parts'][0]['functionCall']['args']['result']
+            except:
+                logger.error('could not parse the response')
+                pass
             rows.append({'input_text': input_text, 'answer': answer})
     df = pd.DataFrame(rows)
     return df
@@ -198,6 +208,4 @@ def main():
 
 if __name__ == '__main__':
     init_logger()
-    # download_result('gs://gil_research/output_folder/prediction-model-2025-01-06T12:00:02.948994Z')
     main()
-    # load_model_output(output_file_path=OUTPUT_FILE_PATH)

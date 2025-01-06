@@ -40,7 +40,7 @@ def get_tools():
                                 "description": "The explanation for the class that was chosen"
                             }
                         },
-                        #"required": ["result"]
+                        "required": ["label", "explanation"]
                     }
                 }, "required": ["result"]
             }
