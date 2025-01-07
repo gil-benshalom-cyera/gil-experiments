@@ -49,3 +49,10 @@ def get_tools():
 
     tool_choice = {"name": "get_label"}
     return tools, tool_choice
+
+
+def save_input_file(file_path: str, data: list):
+    with open(file_path, "w") as file:
+        for record in data:
+            json_line = json.dumps(record)
+            file.write(json_line + "\n")

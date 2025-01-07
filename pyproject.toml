@@ -25,6 +25,7 @@ cyera_common_py = { path = "../../cyera/libs/python/cyera_common_py", develop = 
 types-tqdm = "^4.66.0.20240417"
 pandas-stubs = "^2.2.2.240603"
 google-cloud-aiplatform = "^1.75.0"
+boto3 = "^1.35.93"
 
 [tool.poetry.dev-dependencies]
 mypy = "==1.8.0"

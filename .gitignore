@@ -128,7 +128,7 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-.env
+batch_executors/.env
 .venv
 env/
 venv/

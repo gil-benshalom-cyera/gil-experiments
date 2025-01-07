@@ -1,6 +1,5 @@
 import logging
 import time
-
 import pandas as pd
 import vertexai
 import json
@@ -9,6 +8,7 @@ from pandas import Series
 from utils.funcs import init_logger, get_data, get_tools
 from utils.decorators import log_execution_time
 from google.cloud import storage
+import boto3
 
 PROJECT_ID = "prod-340608"
 LOCATION = "us-central1"
@@ -78,50 +78,31 @@ def download_from_gcp(bucket_name, source_blob_name, destination_file_path):
 
 def get_input():
     df = get_data()
+    df = pd.concat([df] * 5, ignore_index=True)
     tools, tools_choice = get_tools()
     df['prompt'] = df.apply(lambda x: build_prompt(x, tools, tools_choice), axis=1)
     return df['prompt'].tolist()
 
 
-def build_prompt(row: Series, tools: list = None, tool_choice: dict = None):
+def build_prompt(row: Series, tools: list, tool_choice: dict):
     prompt = {
-        "request": {
-            "system_instruction": {
-                "parts": [
-                    {
-                        "text": "You *must* classify the following text into one of these classes:" + str(row['options']) + ". Even if uncertain, choose the most likely class and provide a brief explanation"
-                    }
-                ]
-            },
-            "contents": [
-                {
-                    "role": "user",
-                    "parts": [{
-                        "text": row['text']
-                    }]
-                }
-            ],
-            'generation_config': {
-                'temperature': 0.2
-            }
+        "recordId": row['custom_id'],
+        "modelInput":{
+            "anthropic_version": "bedrock-2023-05-31",
+            "max_tokens": 1024,
+            "messages": [
+                {"role": "system",
+                 "content": f"""please classify the following text to one of the following classes: {row['options']}
+                                please provide a brief explanation for your choice."""},
+                {"role": "user", "content": row['text']}
+            ]
         }
     }
     if tools and tool_choice:
-        prompt["request"]["tools"] = {"function_declarations": tools}
-        prompt["request"]["tool_config"] = {
-            "function_calling_config":{
-                    "mode": "any", "allowed_function_names": [tool_choice["name"]]
-                }
-        }
+        prompt['modelInput']['functions'] = tools
+        prompt['modelInput']['function_call'] = tool_choice
+
     return prompt
-
-
-def save_input_file(file_path: str):
-    data = get_input()
-    with open(file_path, "w") as file:
-        for record in data:
-            json_line = json.dumps(record)
-            file.write(json_line + "\n")
 
 
 def split_path(path: str):
@@ -188,7 +169,7 @@ def load_model_output(output_file_path: str):
                 input_text = res['request']['contents'][0]['parts'][0]['text']
                 answer = res['response']['candidates'][0]['content']['parts'][0]['functionCall']['args']['result']
             except:
-                logger.error('could not parse the response')
+                logger.error(f'could not parse the response: {res}')
                 pass
             rows.append({'input_text': input_text, 'answer': answer})
     df = pd.DataFrame(rows)
@@ -197,7 +178,8 @@ def load_model_output(output_file_path: str):
 
 @log_execution_time
 def main():
-    save_input_file(file_path=INPUT_FILE)
+    data = get_input()
+    save_input_file(file_path=INPUT_FILE, data=data)
     upload_file(path=INPUT_URI)
     batch_prediction_job = submit_job(input_uri=INPUT_URI, output_uri=OUTPUT_URI)
     remote_file_path = wait_for_completion(batch_prediction_job=batch_prediction_job)
