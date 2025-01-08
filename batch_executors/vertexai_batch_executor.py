@@ -129,8 +129,7 @@ class VertexAIBatchExecutor(BaseExecutorBase):
         logger.info(f"Job state: {batch_prediction_job.state.name}")
         return {'batch_prediction_job': batch_prediction_job}
 
-    def wait_for_completion(self, **kwargs) -> dict:
-        batch_prediction_job = kwargs.get('batch_prediction_job')
+    def wait_for_completion(self, batch_prediction_job: BatchPredictionJob, **kwargs) -> dict:
         while not batch_prediction_job.has_ended:
             time.sleep(5)
             batch_prediction_job.refresh()
@@ -145,8 +144,7 @@ class VertexAIBatchExecutor(BaseExecutorBase):
         logger.info(f"Job output location: {batch_prediction_job.output_location}")
         return {'output_location': batch_prediction_job.output_location}
 
-    def download_result(self, **kwargs) -> None:
-        output_location = kwargs.get('output_location')
+    def download_result(self, output_location: str, **kwargs) -> None:
         bucket, blob = self.split_path(output_location)
         blob = f'{blob}/predictions.jsonl'
         self.download_from_gcp(bucket, blob, self.output_file_path)
@@ -173,11 +171,11 @@ if __name__ == '__main__':
     _tools, _tool_choice = get_tools()
 
     executor = VertexAIBatchExecutor(
-        input_file='sample_input.jsonl',
-        input_uri=f"gs://gil_research/sample_input.jsonl",
+        input_file='vertexai_sample_input.jsonl',
+        input_uri=f"gs://gil_research/vertexai_sample_input.jsonl",
         output_uri="gs://gil_research/output_folder/",
         model_name="gemini-1.5-flash-002",
-        output_file_path="predictions.jsonl",
+        output_file_path="vertexai_predictions.jsonl",
         tools=_tools,
         tool_choice=_tool_choice,
         project="prod-340608",
