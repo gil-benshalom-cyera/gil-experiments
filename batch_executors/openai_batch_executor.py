@@ -1,10 +1,9 @@
 from batch_executor_base import BaseExecutorBase
 import os
-from typing import Any
 import datetime
 from dotenv import load_dotenv
-from openai import AzureOpenAI
-from openai import BadRequestError
+from openai import AzureOpenAI, BadRequestError
+from openai.types import Batch
 import logging
 import time
 import pandas as pd
@@ -62,15 +61,14 @@ class OpenAIBatchExecutor(BaseExecutorBase):
         logger.info(file_id)
         return {'file_id': file_id}
 
-    def submit_job(self, **kwargs) -> Any:
+    def submit_job(self, file_id: str, **kwargs) -> dict:
         max_tries = 3
         cnt = 0
-        file_id = kwargs.get('file_id')
         while cnt < max_tries:
             try:
                 batch_response = self.client.batches.create(
                     input_file_id=file_id,
-                    endpoint="/chat/completions",
+                    endpoint="/v1/chat/completions",
                     completion_window="24h",
                 )
 
@@ -84,8 +82,7 @@ class OpenAIBatchExecutor(BaseExecutorBase):
                     logger.info(f"File in status pending, trying again for {max_tries - cnt} more times")
                     time.sleep(20)
 
-    def wait_for_completion(self, **kwargs) -> Any:
-        batch_id = kwargs.get('batch_id')
+    def wait_for_completion(self, batch_id: str, **kwargs) -> dict:
         batch_response = self.client.batches.retrieve(batch_id)
         status = batch_response.status
         while status not in ("completed", "failed", "canceled"):
@@ -119,8 +116,7 @@ class OpenAIBatchExecutor(BaseExecutorBase):
             answer = message.get('content')
         return {"custom_id": custom_id, "answer": answer}
 
-    def download_result(self, **kwargs) -> None:
-        batch_response = kwargs.get('batch_response')
+    def download_result(self, batch_response: Batch, **kwargs) -> None:
         results = []
         output_file_id = batch_response.output_file_id
         error_file_id = batch_response.error_file_id
@@ -159,11 +155,11 @@ if __name__ == '__main__':
     _tools, _tool_choice = get_tools()
 
     executor = OpenAIBatchExecutor(
-        input_file='sample_input_openai.jsonl',
+        input_file='batch_artifacts/sample_input_openai.jsonl',
         model_name='gpt-4o-mini-batch',
-        output_file_path="predictions_openai.csv",
+        output_file_path="batch_artifacts/predictions_openai.csv",
         tools=_tools,
         tool_choice=_tool_choice,
-        final_output_path='output_openai.csv'
+        final_output_path='batch_artifacts/output_openai.csv'
     )
     executor.run()

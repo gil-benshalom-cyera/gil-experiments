@@ -4,17 +4,16 @@ import boto3
 import logging
 import json
 import pandas as pd
-import datetime
 from dotenv import load_dotenv
 from botocore.exceptions import NoCredentialsError
 from utils.funcs import init_logger, get_tools
-from utils.decorators import log_execution_time
 from batch_executor_base import BaseExecutorBase
 
 logger = logging.getLogger(__name__)
 
 
 # detailed structure of the formant here - https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters-anthropic-claude-messages.html
+# additional data on claude - https://docs.anthropic.com/en/docs/build-with-claude/tool-use#json-mode
 
 
 class BedrockAIBatchExecutor(BaseExecutorBase):
@@ -33,6 +32,8 @@ class BedrockAIBatchExecutor(BaseExecutorBase):
         self.input_data_config = {"s3InputDataConfig": {"s3Uri": self.input_uri}}
         self.output_data_config = {"s3OutputDataConfig": {"s3Uri": self.output_uri}}
         self.role_arn = "arn:aws:iam::374136425572:role/bedrock-service-role"
+        self.max_tokens = 2048
+        self.temperature = 0.2
 
     def find_file_in_directory(self, bucket_name, directory_prefix, file_name):
         """
@@ -96,13 +97,13 @@ class BedrockAIBatchExecutor(BaseExecutorBase):
             "recordId": row['custom_id'],
             "modelInput": {
                 "anthropic_version": "bedrock-2023-05-31",
-                "max_tokens": 1024,
+                "max_tokens": self.max_tokens,
                 "system": f"""please classify the following text to one of the following classes: {row['options']}. \n please provide a brief explanation for your choice.""",
                 "messages": [{
                     "role": "user",
                     "content": row['text']
                 }],
-                "temperature": 0.2
+                "temperature": self.temperature
             }
         }
         if self.tools and self.tool_choice:
@@ -115,7 +116,7 @@ class BedrockAIBatchExecutor(BaseExecutorBase):
                 })
             prompt['modelInput']['tools'] = tools
             prompt['modelInput']['tool_choice'] = {
-                'type': 'any',
+                'type': 'tool',
                 'name': self.tool_choice['name']
             }
         return prompt
@@ -161,14 +162,14 @@ class BedrockAIBatchExecutor(BaseExecutorBase):
         rows = []
         with open(self.output_file_path, 'r') as f:
             for line in f:
-                input_text, res = '', ''
+                user_input, answer = '', ''
                 res = json.loads(line)
                 try:
                     user_input = res['modelInput']['messages'][0]['content']
                     answer = res['modelOutput']['content'][0]['input']
-                    rows.append({'input': user_input, 'output': answer})
                 except:
                     logger.info(f"Error in processing row")
+                rows.append({'input': user_input, 'output': answer})
         df = pd.DataFrame(rows)
         return df
 
@@ -191,14 +192,14 @@ if __name__ == '__main__':
     _tools, _tool_choice = get_tools()
 
     executor = BedrockAIBatchExecutor(
-        input_file='bedrock_sample_input.jsonl',
+        input_file='batch_artifacts/bedrock_sample_input.jsonl',
         input_uri=f"s3://batch-prediction-data/bedrock_sample_input.jsonl",
         output_uri="s3://batch-prediction-data/output_folder/",
         model_name="anthropic.claude-3-haiku-20240307-v1:0",
-        output_file_path="bedrock_predictions.jsonl",
+        output_file_path="batch_artifacts/bedrock_predictions.jsonl",
         tools=_tools,
         tool_choice=_tool_choice,
         location="us-east-1",
-        final_output_path='output_bedrock.csv'
+        final_output_path='batch_artifacts/output_bedrock.csv'
     )
     executor.run()

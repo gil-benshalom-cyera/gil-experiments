@@ -40,6 +40,7 @@ class BaseExecutorBase:
         del input_rows[-1]
         dict_rows = [json.loads(row) for row in input_rows]
         df = pd.DataFrame(dict_rows)
+        # df = pd.concat([df] * 10, ignore_index=True)
         return df[0:100]
 
     def save_input_file(self, data: list):

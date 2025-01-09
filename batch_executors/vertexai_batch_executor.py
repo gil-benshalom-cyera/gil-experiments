@@ -11,6 +11,9 @@ from google.cloud import storage
 logger = logging.getLogger(__name__)
 
 
+### Requires JITGCPProdStorageAccount role from Entitlements
+
+
 class VertexAIBatchExecutor(BaseExecutorBase):
 
     def __init__(self, input_file: str, input_uri: str, output_uri: str, model_name: str, output_file_path: str,
@@ -22,6 +25,7 @@ class VertexAIBatchExecutor(BaseExecutorBase):
         )
         self.project = project
         self.location = location
+        self.temperature = 0.2
 
     def upload_to_gcp(self, bucket_name, source_file_path, destination_blob_name):
         """
@@ -77,7 +81,6 @@ class VertexAIBatchExecutor(BaseExecutorBase):
             raise
 
     def build_prompt(self, row: pd.Series) -> dict:
-        # TODO this can be edited in each task
         prompt = {
             "request": {
                 "system_instruction": {
@@ -96,7 +99,7 @@ class VertexAIBatchExecutor(BaseExecutorBase):
                     }
                 ],
                 'generation_config': {
-                    'temperature': 0.2
+                    'temperature': self.temperature
                 }
             }
         }
@@ -171,15 +174,15 @@ if __name__ == '__main__':
     _tools, _tool_choice = get_tools()
 
     executor = VertexAIBatchExecutor(
-        input_file='vertexai_sample_input.jsonl',
+        input_file='batch_artifacts/vertexai_sample_input.jsonl',
         input_uri=f"gs://gil_research/vertexai_sample_input.jsonl",
         output_uri="gs://gil_research/output_folder/",
         model_name="gemini-1.5-flash-002",
-        output_file_path="vertexai_predictions.jsonl",
+        output_file_path="batch_artifacts/vertexai_predictions.jsonl",
         tools=_tools,
         tool_choice=_tool_choice,
         project="prod-340608",
         location="us-central1",
-        final_output_path='output_vertexai.csv'
+        final_output_path='batch_artifacts/output_vertexai.csv'
     )
     executor.run()
