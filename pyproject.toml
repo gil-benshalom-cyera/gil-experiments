@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "llm_client_py"
+name = "gil_experiments_py"
 version = "0.1.0"
 description = "A client to interact with all the LLM APIs."
 readme = "README.md"
@@ -22,16 +22,23 @@ nest_asyncio = "^1.6.0"
 python-dotenv = "^1.0.1"
 numpy = "^1.26.4"
 cyera_common_py = { path = "../../cyera/libs/python/cyera_common_py", develop = true }
+llm_client_py = { path = "../../cyera/libs/python/llm_client_py", develop = true }
+auto_labeling = { path = "../../cyera/libs/python/auto_labeling_py", develop = true }
 types-tqdm = "^4.66.0.20240417"
 pandas-stubs = "^2.2.2.240603"
 google-cloud-aiplatform = "^1.75.0"
 boto3 = "^1.35.93"
+torch = "==2.2"
+transformers = "^4.25.1"
+datasets = "^2.8.0"
+ctranslate2 = "==4.5.0"
 
 [tool.poetry.dev-dependencies]
 mypy = "==1.8.0"
 black = "^22.6.0"
 pylint = "^3.0.0a5"
 pylint-pydantic = "^0.3.2"
+qwak-sdk = "^0.5.85"
 
 
 [build-system]

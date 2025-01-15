@@ -173,18 +173,6 @@ class BedrockAIBatchExecutor(BaseExecutorBase):
         df = pd.DataFrame(rows)
         return df
 
-    # @log_execution_time
-    # def run(self):
-    #     input_data = self.get_input_list_for_model()
-    #     # self.save_input_file(data=input_data)
-    #     # input_res = self.upload_file()
-    #     # job_res = self.submit_job(**input_res)
-    #     completion_res = self.wait_for_completion(
-    #         job_arn='arn:aws:bedrock:us-east-1:374136425572:model-invocation-job/7i8kjkhquvt0')
-    #     self.download_result(**completion_res)
-    #     df = self.load_model_output(data=input_data)
-    #     df.to_csv(self.final_output_path, index=False)
-
 
 if __name__ == '__main__':
     init_logger()
