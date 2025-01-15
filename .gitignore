@@ -169,3 +169,5 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+batch_executors/batch_artifacts
